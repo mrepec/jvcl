@@ -334,7 +334,7 @@ type
   protected
     constructor Create(AOwner: TJvInterpreterExpression; AInstance: TObject;
       const AUnitName, AFunctionName, APropName: string); virtual;
-    function CallFunction(Args: TJvInterpreterArgs; Params: array of Variant): Variant;
+    function CallFunction(Args: TJvInterpreterArgs; const Params: array of Variant): Variant;
     property Args: TJvInterpreterArgs read GetArgs;
     property Owner: TJvInterpreterExpression read FOwner;
     property Instance: TObject read FInstance;
@@ -876,9 +876,9 @@ type
     procedure ReadArgs;
     procedure InternalGetValue(Obj: Pointer; ObjTyp: Word; var Result: Variant);
     function CallFunction(const FunctionName: string;
-      Args: TJvInterpreterArgs; Params: array of Variant): Variant; virtual; abstract;
+      Args: TJvInterpreterArgs; const Params: array of Variant): Variant; virtual; abstract;
     function CallFunctionEx(Instance: TObject; const UnitName: string;
-      const FunctionName: string; Args: TJvInterpreterArgs; Params: array of Variant): Variant; virtual; abstract;
+      const FunctionName: string; Args: TJvInterpreterArgs; const Params: array of Variant): Variant; virtual; abstract;
     procedure SetDisableExternalFunctions(const Value: Boolean);
   protected
     procedure UpdateExceptionPos(E: Exception; const UnitName: string);
@@ -1042,10 +1042,10 @@ type
     procedure DeclareExternalFunction(const Declaration: string);
     procedure Compile;
     function CallFunction(const FunctionName: string; Args: TJvInterpreterArgs;
-      Params: array of Variant): Variant; override;
+      const Params: array of Variant): Variant; override;
     function CallFunctionEx(Instance: TObject; const UnitName: string;
       const FunctionName: string; Args: TJvInterpreterArgs;
-      Params: array of Variant): Variant; override;
+      const Params: array of Variant): Variant; override;
     function FunctionExists(const UnitName: string;
       const FunctionName: string): Boolean;
     property OnGetUnitSource: TJvInterpreterGetUnitSource read FOnGetUnitSource
@@ -1180,9 +1180,9 @@ function P2R(const P: Pointer): Pointer; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
 function S2V(const I: Integer): Variant; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
 
 { V2S - give a set from variant and converts it to Integer }
-function V2S(V: Variant): Integer; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function V2S(const V: Variant): Integer; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
 
-procedure V2OA(V: Variant; var OA: TOpenArray; var OAValues: TValueArray;
+procedure V2OA(const V: Variant; var OA: TOpenArray; var OAValues: TValueArray;
   var Size: Integer);
 
 function TypeName2VarTyp(const TypeName: string): Word;
@@ -1566,7 +1566,7 @@ begin
   TVarData(Result).VType := varSet;
 end;
 
-function V2S(V: Variant): Integer;
+function V2S(const V: Variant): Integer;
 var
   I: Integer;
 begin
@@ -2337,7 +2337,7 @@ begin
     (AElement - ArrayRec^.BeginPos[0]) * ArrayRec^.ElementSize)^), Value);
 end;
 
-procedure V2OA(V: Variant; var OA: TOpenArray; var OAValues: TValueArray;
+procedure V2OA(const V: Variant; var OA: TOpenArray; var OAValues: TValueArray;
   var Size: Integer);
 var
   I: Integer;
@@ -2564,7 +2564,7 @@ begin
 end;
 }
 
-function Var2Type(V: Variant; const VarType: Integer): Variant;
+function Var2Type(const V: Variant; const VarType: Integer): Variant;
 begin
   if (TVarData(V).VType = varEmpty) or (TVarData(V).VType = varNull) then
   begin
@@ -2900,7 +2900,7 @@ begin
 end;
 
 function TJvInterpreterEvent.CallFunction(Args: TJvInterpreterArgs;
-  Params: array of Variant): Variant;
+  const Params: array of Variant): Variant;
 var
   I: Integer;
   NV: Variant;
@@ -8460,13 +8460,13 @@ begin
 end;
 
 function TJvInterpreterUnit.CallFunction(const FunctionName: string; Args: TJvInterpreterArgs;
-  Params: array of Variant): Variant;
+  const Params: array of Variant): Variant;
 begin
   Result := CallFunctionEx(nil, '', FunctionName, Args, Params);
 end;
 
 function TJvInterpreterUnit.CallFunctionEx(Instance: TObject; const UnitName: string;
-  const FunctionName: string; Args: TJvInterpreterArgs; Params: array of Variant): Variant;
+  const FunctionName: string; Args: TJvInterpreterArgs; const Params: array of Variant): Variant;
 var
   FunctionDesc: TJvInterpreterFunctionDesc;
   I: Integer;
