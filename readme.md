@@ -1,3 +1,7 @@
+About this fork
+=============================
+This repository contains only modificaton for JvInterpreter* - it can't be merged into origin because can break backward compatibility and is not tested with old delphi versions.
+
 JEDI Visual Component Library
 =============================
 
