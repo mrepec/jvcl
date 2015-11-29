@@ -1150,37 +1150,37 @@ type
   TJvInterpreterShiftStateCastType = {$IFDEF COMPILER14_UP}Word{$ELSE}Byte{$ENDIF};
 
 { V2O - converts variant to object }
-function V2O(const V: Variant): TObject; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function V2O(const V: Variant): TObject; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { O2V - converts object to variant }
-function O2V(O: TObject): Variant; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function O2V(O: TObject): Variant; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { V2C - converts variant to class }
-function V2C(const V: Variant): TClass; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function V2C(const V: Variant): TClass; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { O2V - converts class to variant }
-function C2V(C: TClass): Variant; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function C2V(C: TClass): Variant; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { V2P - converts variant to pointer }
-function V2P(const V: Variant): Pointer; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function V2P(const V: Variant): Pointer; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { P2V - converts pointer to variant }
-function P2V(P: Pointer): Variant; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function P2V(P: Pointer): Variant; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { R2V - create record holder and put it into variant }
-function R2V(const ARecordType: string; ARec: Pointer): Variant; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function R2V(const ARecordType: string; ARec: Pointer): Variant; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { V2R - returns pointer to record from variant, containing record holder }
-function V2R(const V: Variant): Pointer; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function V2R(const V: Variant): Pointer; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { P2R - returns pointer to record from record holder, typically Args.Obj }
-function P2R(const P: Pointer): Pointer; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function P2R(const P: Pointer): Pointer; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { S2V - converts Integer to set and put it into variant }
-function S2V(const I: Integer): Variant; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function S2V(const I: Integer): Variant; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { V2S - give a set from variant and converts it to Integer }
-function V2S(const V: Variant): Integer; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function V2S(const V: Variant): Integer; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 procedure V2OA(const V: Variant; var OA: TOpenArray; var OAValues: TValueArray;
   var Size: Integer);
@@ -1188,7 +1188,7 @@ procedure V2OA(const V: Variant; var OA: TOpenArray; var OAValues: TValueArray;
 function TypeName2VarTyp(const TypeName: string): Word;
 
 { copy variant variable with all JvInterpreter variant extension }
-procedure JvInterpreterVarCopy(var Dest: Variant; const Source: Variant); {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+procedure JvInterpreterVarCopy(var Dest: Variant; const Source: Variant); {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { copy variant variable for assignment }
 procedure JvInterpreterVarAssignment(var Dest: Variant; const Source: Variant);
@@ -1199,7 +1199,7 @@ function JvInterpreterVarAsType(const V: Variant; const VarType: Integer): Varia
 procedure JvInterpreterVarFree(var V: Variant);
 
 { compare strings }
-function Cmp(const S1, S2: string): Boolean; {$IFDEF SUPPORTS_INLINE}inline{$ENDIF};
+function Cmp(const S1, S2: string): Boolean; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
 { For dynamic array support}
 procedure JvInterpreterArraySetLength(AArray: Variant; ASize: Integer);
