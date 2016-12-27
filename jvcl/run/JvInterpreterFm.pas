@@ -369,9 +369,11 @@ begin
   Form.FJvInterpreterFm := Self;
   CreateDfmStream(FForm.FUnitName, Stream);
   try
-    JvInterpreterReadComponentRes(Stream, Form);
+    if Assigned(Stream) then
+      JvInterpreterReadComponentRes(Stream, Form);
   finally
-    FreeDfmStream(Stream);
+    if Assigned(Stream) then
+      FreeDfmStream(Stream);
   end;
   // find form class
   if AForm.FClassIdentifier = '' then

@@ -267,12 +267,13 @@ end;
 procedure JvInterpreter_VarArrayCreate(var Value: Variant; Args: TJvInterpreterArgs);
 var
   OA: TOpenArray;
+  OAE: TOpenArrayE;
   OAV: TValueArray;
   OAS: Integer;
   I: Integer;
   AI: array of Integer;
 begin
-  V2OA(Args.Values[0], OA, OAV, OAS);
+  V2OA(Args.Values[0], OA, OAE, OAV, OAS);
   if Odd(OAS) then
     raise EJVCLException.CreateRes(@RsESizeMustBeEven);
   SetLength(AI, OAS);
@@ -285,12 +286,13 @@ end;
 procedure JvInterpreter_VarArrayOf(var Value: Variant; Args: TJvInterpreterArgs);
 var
   OA: TOpenArray;
+  OAE: TOpenArrayE;
   OAV: TValueArray;
   OAS: Integer;
   I: Integer;
   AV: array of Variant;
 begin
-  V2OA(Args.Values[0], OA, OAV, OAS);
+  V2OA(Args.Values[0], OA, OAE, OAV, OAS);
   SetLength(AV, OAS);
   for I := 0 to OAS -1 do
     AV[I] := OAV[I];
@@ -650,6 +652,9 @@ begin
     AddConst(cSystem, 'varWord', Ord(varWord));
     AddConst(cSystem, 'varLongWord', Ord(varLongWord));
     AddConst(cSystem, 'varInt64', Ord(varInt64));
+  {$IFDEF SUPPORTS_UNICODE_STRING}
+    AddConst(cSystem, 'varUString', Ord(varUString));
+  {$ENDIF}
   end;
 end;
 

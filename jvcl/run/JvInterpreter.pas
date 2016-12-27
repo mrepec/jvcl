@@ -53,14 +53,14 @@ Known Issues:
   1.21.2 (RALib 1.21 Update 2):
    - fixed bug with multiple external functions defintions
      (greetings to Peter Fischer-Haaser)
-   - fixed AV-bug in TJvInterpreterFunction.InFunction if errors in source occured
+   - fixed AV-bug in TJvInterpreterFunction.InFunction if errors in source occurred
      (greetings to Andre N Belokon)
   1.21.4 (RALib 1.21 Update 4):
    - fixed bugs in "if" and "while" with "begin" statements;
    - "div" and "mod" now working;
   1.21.6 (RALib 1.21 Update 6):
    - fixed bug with incorrect error line and unit name if erorr
-     occured in used unit
+     occurred in used unit
      (greetings to Dmitry Mokrushin)
    - add parameters check (not fully functional - only count checked)
      in source fucntion calls;
@@ -171,6 +171,22 @@ Upcoming JVCL 3.00
    - fixed  Character '"' error in SkipToEnd from dejoy 2004-5-25;
 
    - peter schraut added shl, shr and xor support
+
+   2.10 changes by cs17
+   - support for double in openarrays (TOpenArrayE + V2OA) - break backward compatibility
+   - forced inline
+   - Int64 support
+   - speed optimization - Cmp and similiar - using SameText - potential break backward compatibility
+   - fixem mem-leak in record
+   - interface default get/set
+   - additional field types for records
+   - unicode strings for ole dispatch
+   - int64 for rtti set value
+   - x64 fix for array
+   - function identifier in FunctionContext (for display call stack in custom debuger using OnStatement)
+   - fixed minus token (f.e. "-102.12") handling for parsed sources
+   - fixed interface/implementation position (FUnitSection) - problems with uses and units
+   - speed optimization - more uses of const parameters
 }
 
 unit JvInterpreter;
@@ -238,6 +254,8 @@ type
 
   POpenArray = ^TOpenArray;
   TOpenArray = array [0..cJvInterpreterMaxArgs] of TVarRec;
+  POpenArrayE = ^TOpenArrayE;
+  TOpenArrayE = array [0..cJvInterpreterMaxArgs] of Extended;
 
   TJvInterpreterRecField = record
     Identifier: string;
@@ -273,6 +291,7 @@ type
   public
     { open array parameter support }
     OA: POpenArray; { open array }
+    OAE: POpenArrayE;
     OAS: Integer; { open array size }
     destructor Destroy; override;
     procedure Clear;
@@ -1182,7 +1201,7 @@ function S2V(const I: Integer): Variant; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 { V2S - give a set from variant and converts it to Integer }
 function V2S(const V: Variant): Integer; {$IFDEF SUPPORTS_INLINE}inline;{$ENDIF}
 
-procedure V2OA(const V: Variant; var OA: TOpenArray; var OAValues: TValueArray;
+procedure V2OA(const V: Variant; var OA: TOpenArray; var OAE: TOpenArrayE; var OAValues: TValueArray;
   var Size: Integer);
 
 function TypeName2VarTyp(const TypeName: string): Word;
@@ -1706,9 +1725,10 @@ end;
 function Cmp(const S1, S2: string): Boolean;
 begin
   // Direct call to CompareString is faster than AnsiCompareText.
-  Result := (Length(S1) = Length(S2)) and
-    (CompareString(LOCALE_USER_DEFAULT, NORM_IGNORECASE, PChar(S1),
-    -1, PChar(S2), -1) = 2);
+//  Result := (Length(S1) = Length(S2)) and
+//    (CompareString(LOCALE_USER_DEFAULT, NORM_IGNORECASE, PChar(S1),
+//    -1, PChar(S2), -1) = 2);
+  Result := (Length(S1) = Length(S2)) and SameText(S1, S2);
 end;
 
 {************* Some code from RAStream unit **************}
@@ -2337,13 +2357,14 @@ begin
     (AElement - ArrayRec^.BeginPos[0]) * ArrayRec^.ElementSize)^), Value);
 end;
 
-procedure V2OA(const V: Variant; var OA: TOpenArray; var OAValues: TValueArray;
+procedure V2OA(const V: Variant; var OA: TOpenArray; var OAE: TOpenArrayE; var OAValues: TValueArray;
   var Size: Integer);
 var
   I: Integer;
   ArrayRec: PJvInterpreterArrayRec;
   Element: TJvInterpreterArrayValues;
   ElementVariant: Variant;
+  VR: TVarRec;
 begin
   if TVarData(V).VType = varArray then
   //JvInterpreterError(ieTypeMistmatch, -1);
@@ -2365,10 +2386,10 @@ begin
           end;
         varInt64:
           begin
-            OAValues[i] := V[i];
+            OAValues[I] := V[I];
             VarCast(OAValues[I], OAValues[I], varInt64);
-            OA[i].VInt64 := @TVarData(OAValues[i]).VInt64;
-            OA[i].VType := vtInt64;
+            OA[I].VInt64 := @TVarData(OAValues[I]).VInt64;
+            OA[I].VType := vtInt64;
           end;
         varString, varOleStr:
           begin
@@ -2386,17 +2407,18 @@ begin
           end;
         varDouble:
           begin
-            OAValues[i] := V[i];
+            OAValues[I] := V[I];
             VarCast(OAValues[I], OAValues[I], varDouble);
-            OA[i].VExtended := @TVarData(OAValues[i]).VDouble;
-            OA[i].VType := vtExtended;
+            OAE[I] := V[I];
+            OA[I].VExtended := @OAE[I];
+            OA[I].VType := vtExtended;
           end;
         varCurrency:
           begin
-            OAValues[i] := V[i];
+            OAValues[I] := V[I];
             VarCast(OAValues[I], OAValues[I], varCurrency);
-            OA[i].vCurrency := @TVarData(OAValues[i]).vCurrency;
-            OA[i].VType := vtCurrency;
+            OA[I].vCurrency := @TVarData(OAValues[I]).vCurrency;
+            OA[I].VType := vtCurrency;
           end;
       else
         OAValues[I] := ElementVariant;
@@ -2421,7 +2443,7 @@ begin
           begin
             OAValues[I] := V[I];
             VarCast(OAValues[I], OAValues[I], varInt64);
-            OA[I].VInt64 := @TVarData(OAValues[i]).VInt64;
+            OA[I].VInt64 := @TVarData(OAValues[I]).VInt64;
             OA[I].VType := vtInt64;
           end;
         varString, varOleStr:
@@ -2438,17 +2460,19 @@ begin
           end;
         varDouble:
           begin
-            OAValues[i] := V[i];
+            OAValues[I] := V[I];
             VarCast(OAValues[I], OAValues[I], varDouble);
-            OA[i].VExtended := @TVarData(OAValues[i]).VDouble;
-            OA[i].VType := vtExtended;
+            OAE[I] := V[I];
+            OA[I].VExtended := @OAE[I];
+            OA[I].VType := vtExtended;
+            vr := OA[I];
           end;
         varCurrency:
           begin
-            OAValues[i] := V[i];
+            OAValues[I] := V[I];
             VarCast(OAValues[I], OAValues[I], varCurrency);
-            OA[i].vCurrency := @TVarData(OAValues[i]).vCurrency;
-            OA[i].VType := vtCurrency;
+            OA[I].vCurrency := @TVarData(OAValues[I]).vCurrency;
+            OA[I].VType := vtCurrency;
           end;
       else
         OAValues[I] := V[I];
@@ -2930,7 +2954,8 @@ begin
   while L <= H do
   begin
     I := (L + H) shr 1;
-    C := AnsiStrIComp(PChar(TJvInterpreterIdentifier(List[I]).Identifier), PChar(Identifier));
+    //C := AnsiStrIComp(PChar(TJvInterpreterIdentifier(List[I]).Identifier), PChar(Identifier));
+    C := CompareText(TJvInterpreterIdentifier(List[I]).Identifier, Identifier); 
     if C < 0 then
       L := I + 1
     else
@@ -2952,8 +2977,9 @@ begin
   { function AnsiStrIComp about 30% faster than AnsiCompareText }
   { Result := AnsiCompareText(TJvInterpreterIdentifier(Item1).Identifier,
      TJvInterpreterIdentifier(Item2).Identifier); }
-  Result := AnsiStrIComp(PChar(TJvInterpreterIdentifier(Item1).Identifier),
-    PChar(TJvInterpreterIdentifier(Item2).Identifier));
+//  Result := AnsiStrIComp(PChar(TJvInterpreterIdentifier(Item1).Identifier),
+//    PChar(TJvInterpreterIdentifier(Item2).Identifier));
+  Result := CompareText(TJvInterpreterIdentifier(Item1).Identifier, TJvInterpreterIdentifier(Item2).Identifier);
 end;
 
 procedure TJvInterpreterIdentifierList.Sort(Compare: TListSortCompare = nil);
@@ -5324,6 +5350,8 @@ destructor TJvInterpreterArgs.Destroy;
 begin
   if OA <> nil then
     Dispose(OA);
+  if OAE <> nil then
+    Dispose(OAE);
   if FOAV <> nil then
     Dispose(FOAV);
   inherited Destroy;
@@ -5344,9 +5372,11 @@ procedure TJvInterpreterArgs.OpenArray(const Index: Integer);
 begin
   if OA = nil then
     New(OA);
+  if OAE = nil then
+    New(OAE);
   if FOAV = nil then
     New(FOAV);
-  V2OA(Values[Index], OA^, FOAV^, OAS);
+  V2OA(Values[Index], OA^, OAE^, FOAV^, OAS);
 end;
 
 procedure TJvInterpreterArgs.Delete(const Index: Integer);
@@ -5368,7 +5398,7 @@ constructor TJvInterpreterExpression.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FParser := TJvInterpreterParser.Create;
-  FPStream := TStringStream.Create('');
+  FPStream := TMemoryStream.Create;
   FArgs := TJvInterpreterArgs.Create;
   FAdapter := CreateAdapter;
   FDisableExternalFunctions := False;
@@ -7753,13 +7783,12 @@ begin
       Dimension := 0;
       repeat
         NextToken;
-        Minus1 := False;
-        if (Trim(FTokenStr) = '-') then
+        Minus1 := TTyp = ttMinus;
+        if Minus1 then
         begin
-          Minus1 := True;
           NextToken;
         end;
-        TempBegin := StrToInt(FTokenStr);
+        TempBegin := Token;
         try
           ArrayBegin[Dimension] := TempBegin;
           if Minus1 then
@@ -7773,13 +7802,12 @@ begin
           ErrorExpected('''..''');
 
         NextToken;
-        Minus2 := False;
-        if (Trim(FTokenStr) = '-') then
+        Minus2 := TTyp = ttMinus;
+        if Minus2 then
         begin
-          Minus2 := True;
           NextToken;
         end;
-        TempEnd := StrToInt(FTokenStr);
+        TempEnd := Token;
         try
           ArrayEnd[Dimension] := TempEnd;
         except
@@ -8657,8 +8685,9 @@ begin
   { function AnsiStrIComp about 30% faster than AnsiCompareText }
   { Result := AnsiCompareText(TJvInterpreterIdentifier(Item1).Identifier,
     TJvInterpreterIdentifier(Item2).Identifier); }
-  Result := AnsiStrIComp(PChar(TJvInterpreterIdentifier(Item1).Identifier),
-    PChar(TJvInterpreterIdentifier(Item2).Identifier));
+  //Result := AnsiStrIComp(PChar(TJvInterpreterIdentifier(Item1).Identifier),
+  //  PChar(TJvInterpreterIdentifier(Item2).Identifier));
+  Result := CompareText(TJvInterpreterIdentifier(Item1).Identifier, TJvInterpreterIdentifier(Item2).Identifier);
 
   if (Result = 0) and (Item1 <> Item2) then
   begin

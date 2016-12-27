@@ -63,7 +63,7 @@ begin
   begin
     AddExtUnit(cWindows);
 
-  {$IFDEF SUPPORTS_UNICODE}
+  {$IFDEF SUPPORTS_UNICODE_STRING}
     AddExtFun(cWindows, 'MessageBox', 0, user32, 'MessageBoxW', -1, 4, [varInteger, varString, varString, varInteger],
       varInteger);
   {$ELSE}
