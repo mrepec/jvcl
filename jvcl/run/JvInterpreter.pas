@@ -172,9 +172,9 @@ Upcoming JVCL 3.00
 
    - peter schraut added shl, shr and xor support
 
-   2.10 changes by cs17
-   - support for double in openarrays (TOpenArrayE + V2OA) - break backward compatibility
-   - forced inline
+   2.10 changes by cs17:
+   - support for floats in openarrays (TOpenArrayE + V2OA) - break backward compatibility
+   - speed optimization - forced inline
    - Int64 support
    - speed optimization - Cmp and similiar - using SameText - potential break backward compatibility
    - fixem mem-leak in record
@@ -187,6 +187,7 @@ Upcoming JVCL 3.00
    - fixed minus token (f.e. "-102.12") handling for parsed sources
    - fixed interface/implementation position (FUnitSection) - problems with uses and units
    - speed optimization - more uses of const parameters
+   - fix for pass variant array as const parameter to function
 }
 
 unit JvInterpreter;
@@ -2517,7 +2518,7 @@ begin
       TVarData(Result).VType := VarType;
     end
     else
-    if (VarType = varEmpty) and not VarIsEmpty(V) then
+    if ((VarType and varTypeMask) = varEmpty) and not VarIsEmpty(V) then
       Result := V  // because any cast to unassigned = unassigned
     else
       Result := VarAsType(V, VarType);
