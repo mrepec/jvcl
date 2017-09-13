@@ -300,7 +300,8 @@ type
     OA: POpenArray; { open array }
     OAE: POpenArrayE;
     OAS: Integer; { open array size }
-    constructor Create(AOwner: TJvInterpreterExpression);
+    constructor Create(); overload; deprecated;
+    constructor Create(AOwner: TJvInterpreterExpression); overload;
     destructor Destroy; override;
     procedure Clear;
     procedure OpenArray(const Index: Integer);
@@ -5394,12 +5395,18 @@ begin
   V2OA(Values[Index], OA^, OAE^, FOAV^, OAS);
 end;
 
+constructor TJvInterpreterArgs.Create;
+begin
+  inherited Create();
+end;
+
 constructor TJvInterpreterArgs.Create(AOwner: TJvInterpreterExpression);
 begin
   inherited Create();
-  Assert(AOwner = nil);
+  Assert(AOwner <> nil);
   FOwner := AOwner;
 end;
+
 
 procedure TJvInterpreterArgs.Delete(const Index: Integer);
 var
