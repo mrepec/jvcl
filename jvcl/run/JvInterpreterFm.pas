@@ -464,7 +464,7 @@ begin
       // setting form's Owner from expression 'create(newOwner)'
       // when Identifier = 'Create' then Token = 'newOwner'
       JvInterpreterForm := Args.Obj as TJvInterpreterForm;
-      LocalArgs := TJvInterpreterArgs.Create;
+      LocalArgs := TJvInterpreterArgs.Create(Self);
       try
         LocalArgs.Obj:=Args.Obj;
         LocalArgs.ObjTyp:=Args.ObjTyp;

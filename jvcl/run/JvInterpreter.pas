@@ -188,6 +188,9 @@ Upcoming JVCL 3.00
    - fixed interface/implementation position (FUnitSection) - problems with uses and units
    - speed optimization - more uses of const parameters
    - fix for pass variant array as const parameter to function
+
+   2.11 changes by cs17
+   - owner for arguments to make possible extract current interpreter in registered functions
 }
 
 unit JvInterpreter;
@@ -265,6 +268,8 @@ type
     DataType: IJvInterpreterDataType;
   end;
 
+  TJvInterpreterExpression = class;
+
   TJvInterpreterArgs = class(TObject)
   private
     FVarNames: TNameArray;
@@ -272,6 +277,7 @@ type
     { open array parameter support }
     { allocates memory only if necessary }
     FOAV: PValueArray; { open array values }
+    FOwner: TJvInterpreterExpression;
   public
     Identifier: string;
     Count: Integer;
@@ -294,10 +300,12 @@ type
     OA: POpenArray; { open array }
     OAE: POpenArrayE;
     OAS: Integer; { open array size }
+    constructor Create(AOwner: TJvInterpreterExpression);
     destructor Destroy; override;
     procedure Clear;
     procedure OpenArray(const Index: Integer);
     procedure Delete(const Index: Integer);
+    property Owner: TJvInterpreterExpression read FOwner;
   end;
 
   { function descriptor }
@@ -339,7 +347,6 @@ type
   end;
 
   TSimpleEvent = procedure of object;
-  TJvInterpreterExpression = class;
   EJvInterpreterError = class;
 
   TJvInterpreterEvent = class(TObject)
@@ -2920,7 +2927,7 @@ end;
 function TJvInterpreterEvent.GetArgs: TJvInterpreterArgs;
 begin
   if FArgs = nil then
-    FArgs := TJvInterpreterArgs.Create;
+    FArgs := TJvInterpreterArgs.Create(FOwner);
   Result := FArgs;
 end;
 
@@ -5130,7 +5137,14 @@ begin
     ArgCount := Args.Count;
     NamedArgCount := 0; { named args not supported by JvInterpreter }
   end;
-  Names := Identifier + #00;
+//check for reserved word
+  if (Length(Identifier) > 1)
+      and EndsText('_', Identifier)
+      and (TokenTyp(Copy(Identifier, 1, Length(Identifier) - 1)) <> ttIdentifier)
+  then
+    Names := Copy(Identifier, 1, Length(Identifier) - 1) + #00
+  else
+    Names := Identifier + #00;
   Ptr := 0;
   TypePtr := 0;
   if not Get then
@@ -5380,6 +5394,13 @@ begin
   V2OA(Values[Index], OA^, OAE^, FOAV^, OAS);
 end;
 
+constructor TJvInterpreterArgs.Create(AOwner: TJvInterpreterExpression);
+begin
+  inherited Create();
+  Assert(AOwner = nil);
+  FOwner := AOwner;
+end;
+
 procedure TJvInterpreterArgs.Delete(const Index: Integer);
 var
   I: Integer;
@@ -5400,7 +5421,7 @@ begin
   inherited Create(AOwner);
   FParser := TJvInterpreterParser.Create;
   FPStream := TMemoryStream.Create;
-  FArgs := TJvInterpreterArgs.Create;
+  FArgs := TJvInterpreterArgs.Create(Self);
   FAdapter := CreateAdapter;
   FDisableExternalFunctions := False;
   FAdapter.DisableExternalFunctions := False;
@@ -6040,7 +6061,7 @@ var
   SK: TTokenKind;
 begin
   LocalArgs := FCurrArgs;
-  FCurrArgs := TJvInterpreterArgs.Create;
+  FCurrArgs := TJvInterpreterArgs.Create(Self);
   FCurrArgs.Indexed := LocalArgs.Indexed;
   try
     I := 0;
@@ -6532,7 +6553,7 @@ var
       PFunctionContext(FFunctionContext).LocalVars.AddVar('', cResult, '', varVariant,
         Null, TJvInterpreterSimpleDataType.Create(varVariant));
     FunArgs := FCurrArgs;
-    FCurrArgs := TJvInterpreterArgs.Create;
+    FCurrArgs := TJvInterpreterArgs.Create(Self);
   end;
 
   procedure LeaveFunction(Ok: Boolean); { TJvInterpreterFunction.InFunction local: finalization of function scope }
@@ -7026,7 +7047,7 @@ begin
   Tmp := Unassigned;
   { push args }
   MyArgs := FCurrArgs;
-  FCurrArgs := TJvInterpreterArgs.Create;
+  FCurrArgs := TJvInterpreterArgs.Create(Self);
   try
     FCurrArgs.Assignment := True;
     JvInterpreterVarCopy(Tmp, Expression1);
@@ -7037,7 +7058,7 @@ begin
   end;
   if FCurrArgs.Indexed then
   begin
-    MyArgs := TJvInterpreterArgs.Create;
+    MyArgs := TJvInterpreterArgs.Create(Self);
     MyArgs.Obj := FCurrArgs.Obj;
     MyArgs.ObjTyp := FCurrArgs.ObjTyp;
     try
