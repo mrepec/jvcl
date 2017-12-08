@@ -191,6 +191,9 @@ Upcoming JVCL 3.00
 
    2.11 changes by cs17
    - owner for arguments to make possible extract current interpreter in registered functions
+
+   2.12 changes by cs17
+   - fix for local string, char variables treated as ansistring, they should be unicode, broken old delphi compatibility
 }
 
 unit JvInterpreter;
@@ -1685,9 +1688,15 @@ begin
           Result := varBoolean;
       'P', 'p':
         if Cmp(TypeName, 'PChar') then
+          Result := varUString
+        else
+        if Cmp(TypeName, 'PAnsiChar') then
           Result := varString;
       'S', 's':
-        if Cmp(TypeName, 'string') or Cmp(TypeName, 'ShortString') then
+        if Cmp(TypeName, 'string') then
+          Result := varUString
+        else
+        if Cmp(TypeName, 'ShortString') then
           Result := varString
         else
         if Cmp(TypeName, 'smallint') then
@@ -1950,6 +1959,17 @@ begin
               end;
             varString:
               begin
+                APointer := PAnsiChar(AnsiString(Args.Values[I]));
+                {$IFNDEF CPU64}
+                asm
+                  push APointer
+                end;
+                {$ELSE}
+                Params[I] := TValue.From(APointer);
+                {$ENDIF ~CPU64}
+              end;
+            varUString:
+              begin
                 APointer := PChar(string(Args.Values[I]));
                 {$IFNDEF CPU64}
                 asm
@@ -2133,7 +2153,7 @@ begin
   PP^.Size := ArraySize;
   PP^.Dimension := Dimension;
 
-  if ItemType <> varString then
+  if (ItemType <> varString) or (ItemType <> varUString) then
     PP^.ElementSize := Typ2Size(ItemType)
   else
   begin
@@ -2144,7 +2164,7 @@ begin
     PP^.Memory := SS;
   end;
 
-  if ItemType <> varString then
+  if (ItemType <> varString) or (ItemType <> varUString) then
   begin
     GetMem(PP^.Memory, ArraySize * PP^.ElementSize);
     //ZeroMemory(PP^.Memory, ArraySize * PP^.ElementSize);
@@ -2167,7 +2187,7 @@ begin
     Exit;
   ArraySize := GetArraySize(JvInterpreterArrayRec^.Dimension,
     JvInterpreterArrayRec^.BeginPos, JvInterpreterArrayRec^.EndPos);
-  if JvInterpreterArrayRec^.ItemType <> varString then
+  if (JvInterpreterArrayRec^.ItemType <> varString) or (JvInterpreterArrayRec^.ItemType <> varUString) then
   begin
     if JvInterpreterArrayRec^.ItemType = varEmpty then
       for I := 0 to ArraySize - 1 do
@@ -2215,6 +2235,11 @@ begin
         Value := VarAsType(Value, varString);
         TStringList(JvInterpreterArrayRec^.Memory).Strings[Offset] := Value;
       end;
+    varUString:
+      begin
+        Value := VarAsType(Value, varUString);
+        TStringList(JvInterpreterArrayRec^.Memory).Strings[Offset] := Value;
+      end;
     varEmpty:
       JvInterpreterVarAssignment(Variant(PVarData(P)^), Value);
   else
@@ -2249,6 +2274,8 @@ begin
     varDate:
       Result := TDateTime(P^);
     varString:
+      Result := TStringList(JvInterpreterArrayRec^.Memory).Strings[Offset];
+    varUString:
       Result := TStringList(JvInterpreterArrayRec^.Memory).Strings[Offset];
     varEmpty:
       JvInterpreterVarCopy(Result, Variant(PVarData(P)^));
@@ -2400,7 +2427,7 @@ begin
             OA[I].VInt64 := @TVarData(OAValues[I]).VInt64;
             OA[I].VType := vtInt64;
           end;
-        varString, varOleStr:
+        varString, varOleStr, varUString:
           begin
             // OA[I].vPChar := PChar(string(V[I]));
             // OA[I].VType := vtPChar;
@@ -2455,7 +2482,7 @@ begin
             OA[I].VInt64 := @TVarData(OAValues[I]).VInt64;
             OA[I].VType := vtInt64;
           end;
-        varString, varOleStr:
+        varString, varOleStr, varUString:
           begin
             OAValues[I] := V[I];
             OA[I].VVariant := @OAValues[I];
@@ -2502,7 +2529,7 @@ begin
   if (TVarData(V).VType = varEmpty) or (TVarData(V).VType = varNull) then
   begin
     case VarType of
-      varString, varOleStr:
+      varString, varOleStr, varUString:
         Result := '';
       varInteger, varSmallint, varByte:
         Result := 0;
@@ -2602,7 +2629,7 @@ begin
   if (TVarData(V).VType = varEmpty) or (TVarData(V).VType = varNull) then
   begin
     case VarType of
-      varString, varOleStr:
+      varString, varOleStr, varUString:
         Result := '';
       varInteger, varSmallint, varByte:
         Result := 0;
@@ -4313,6 +4340,8 @@ var
             Value := PVariant(Rec + Field.Offset)^;
           varString:
             Value := PString(Rec + Field.Offset)^;
+          varUString:
+            Value := PString(Rec + Field.Offset)^;
           varEmpty:
             JvInterpreterVarCopy(Value, Variant(PVarData(Rec + Field.Offset)^));
         end;
@@ -4786,6 +4815,8 @@ var
               PVariant(Rec + Offset)^ := Value;
             varString:
               PString(Rec + Offset)^ := Value;
+            varUString:
+              PString(Rec + Offset)^ := Value;
             varEmpty:
               JvInterpreterVarAssignment(Variant(PVarData(Rec + Offset)^), Value);
           end;
@@ -5104,14 +5135,12 @@ var
           Poin := V2P(Param);
           AddParam1(varStrArg, SizeOf(Poin), Poin);
         end;
-    {$IFDEF SUPPORTS_UNICODE}
       varUString:
         begin
           //  atUString  = $4A;  System.Variants.GetDispatchInvokeArgs
           Poin := V2P(Param);
           AddParam1($4A, SizeOf(Poin), Poin);
         end;
-    {$ENDIF}
       varBoolean:
         begin
           Wrd := WordBool(Param);
@@ -5172,7 +5201,7 @@ begin
       JvInterpreterErrorN2(ieOleAuto, -1, Identifier, E.Message);
   end;
   if Get and (TVarData(Value).VType = varOleStr) then
-    Value := VarAsType(Value, varString);
+    Value := VarAsType(Value, varUString);
 end;
 {$ENDIF JvInterpreter_OLEAUTO}
 
@@ -6241,7 +6270,7 @@ begin
   Result := False;
   if Args.Count <> 0 then
   begin
-    if TVarData(Variable).VType = varString then
+    if (TVarData(Variable).VType = varString) or (TVarData(Variable).VType = varUString) then
     begin
       if Args.Count > 1 then
         JvInterpreterError(ieArrayTooManyParams, -1);
@@ -6322,7 +6351,7 @@ begin
   Result := False;
   if Args.Count <> 0 then
   begin
-    if TVarData(Variable).VType = varString then
+    if VarIsStr(Variable) then
     begin
       if Args.Count > 1 then
         JvInterpreterError(ieArrayTooManyParams, -1);
@@ -7074,7 +7103,7 @@ begin
         if not SetElement(Variable, Tmp, FCurrArgs) then
           { problem }
           JvInterpreterError(ieArrayRequired, PosBeg);
-        if (TVarData(Variable).VType = varString) and
+        if VarIsStr(Variable) and
           not SetValue(Identifier, Variable, MyArgs) then
           JvInterpreterErrorN(ieUnknownIdentifier, PosBeg, Identifier);
         if VarIsArray(Variable) and
@@ -8764,7 +8793,7 @@ begin
     GetMem(Rec, RecordSize);
     for I := 0 to FieldCount - 1 do
     begin
-      if Fields[I].Typ = varString then
+      if (Fields[I].Typ = varString) or (Fields[I].Typ = varUString) then
         PString(PString(Rec + Fields[I].Offset)^) := @EmptyStr
       else
       if Fields[I].Typ = varEmpty then
