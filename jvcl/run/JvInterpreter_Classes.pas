@@ -870,13 +870,41 @@ begin
   Value := O2V(TMemoryStream.Create);
 end;
 
-{ TJvStringStream  }
+{ procedure LoadFromFile(const FileName: string); }
+
+procedure TMemoryStream_LoadFromFile(var Value: Variant; Args: TJvInterpreterArgs);
+begin
+  TMemoryStream(Args.Obj).LoadFromFile(Args.Values[0]);
+end;
+
+{ procedure LoadFromStream(Stream: TStream); }
+
+procedure TMemoryStream_LoadFromStream(var Value: Variant; Args: TJvInterpreterArgs);
+begin
+  TMemoryStream(Args.Obj).LoadFromStream(V2O(Args.Values[0]) as TStream);
+end;
+
+{ procedure SaveToFile(const FileName: string); }
+
+procedure TMemoryStream_SaveToFile(var Value: Variant; Args: TJvInterpreterArgs);
+begin
+  TMemoryStream(Args.Obj).SaveToFile(Args.Values[0]);
+end;
+
+{ procedure SaveToStream(Stream: TStream); }
+
+procedure TMemoryStream_SaveToStream(var Value: Variant; Args: TJvInterpreterArgs);
+begin
+  TMemoryStream(Args.Obj).SaveToStream(V2O(Args.Values[0]) as TStream);
+end;
+
+{ TStringStream }
 
 { constructor Create(AString: string) }
 
 procedure TStringStream_Create(var Value: Variant; Args: TJvInterpreterArgs);
 begin
-  Value := O2V(TStringStream.Create(Args.Values[0]));
+  Value := O2V(TStringStream.Create({$IFDEF RTL320_UP}string{$ENDIF RTL320_UP}(Args.Values[0])));
 end;
 
 { function Read(var Buffer; Count: Longint): Longint; }
@@ -1289,7 +1317,11 @@ begin
     { TMemoryStream }
     AddClass(cClasses, TMemoryStream, 'TMemoryStream');
     AddGet(TMemoryStream, 'Create', TMemoryStream_Create, 0, [varEmpty], varEmpty);
-    { TJvStringStream  }
+    AddGet(TMemoryStream, 'LoadFromFile', TMemoryStream_LoadFromFile, 1, [varEmpty], varEmpty);
+    AddGet(TMemoryStream, 'LoadFromStream', TMemoryStream_LoadFromStream, 1, [varEmpty], varEmpty);
+    AddGet(TMemoryStream, 'SaveToFile', TMemoryStream_SaveToFile, 1, [varEmpty], varEmpty);
+    AddGet(TMemoryStream, 'SaveToStream', TMemoryStream_SaveToStream, 1, [varEmpty], varEmpty);
+    { TStringStream }
     AddClass(cClasses, TStringStream, 'TStringStream');
     AddGet(TStringStream, 'Create', TStringStream_Create, 1, [varEmpty], varEmpty);
     AddGet(TStringStream, 'Read', TStringStream_Read, 2, [varByRef, varEmpty], varEmpty);
