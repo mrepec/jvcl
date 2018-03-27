@@ -194,6 +194,9 @@ Upcoming JVCL 3.00
 
    2.12 changes by cs17
    - fix for local string, char variables treated as ansistring, they should be unicode, broken old delphi compatibility
+
+   2.13 changes by cs17
+   - allow consts(and others...) in array declarations
 }
 
 unit JvInterpreter;
@@ -7811,6 +7814,8 @@ var
   //
   JvInterpreterRecord: TJvInterpreterRecord;
   ArrayDT: IJvInterpreterDataType;
+  VTempEnd, VTempBegin: Variant;
+  LArgs: TJvInterpreterArgs;
 begin
   //NextToken;
   TypName := Token;
@@ -7846,6 +7851,16 @@ begin
         begin
           NextToken;
         end;
+        if TTyp = ttIdentifier then
+        begin
+          LArgs := TJvInterpreterArgs.Create(Self);
+          try
+            GetValue(Token, VTempBegin, LArgs);
+          finally
+            LArgs.Free;
+          end;
+          TempBegin := VTempBegin;
+        end else
         TempBegin := Token;
         try
           ArrayBegin[Dimension] := TempBegin;
@@ -7865,7 +7880,17 @@ begin
         begin
           NextToken;
         end;
-        TempEnd := Token;
+        if TTyp = ttIdentifier then
+        begin
+          LArgs := TJvInterpreterArgs.Create(Self);
+          try
+            GetValue(Token, VTempEnd, LArgs);
+          finally
+            LArgs.Free;
+          end;
+          TempEnd := VTempEnd
+        end else
+          TempEnd := Token;
         try
           ArrayEnd[Dimension] := TempEnd;
         except
